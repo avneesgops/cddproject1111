@@ -1,0 +1,14 @@
+services:
+  verifynews:
+    build: .
+    image: verifynews:local
+    environment:
+      NEWS_API_KEY: ${NEWS_API_KEY:-}
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+    volumes:
+      - verifynews_cases:/app/data
+
+volumes:
+  verifynews_cases:

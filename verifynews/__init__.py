@@ -1,0 +1,1 @@
+"""VerifyNews application modules."""

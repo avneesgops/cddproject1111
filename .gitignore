@@ -1,0 +1,16 @@
+.verifynews_cache/
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+.streamlit/credentials.toml
+*.log
+*.zip
+models/
+Fake.csv
+True.csv
+datasets/current_news.json
+data/

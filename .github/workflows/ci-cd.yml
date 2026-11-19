@@ -1,0 +1,67 @@
+name: VerifyNews CI/CD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check Python syntax
+        run: python -m compileall -q app.py verifynews scripts
+
+      - name: Build Docker image
+        run: docker build -t verifynews:ci .
+
+      - name: Start container and check health endpoint
+        run: |
+          docker run -d --name verifynews -p 8501:8501 verifynews:ci
+          for attempt in $(seq 1 36); do
+            if curl --fail --silent http://127.0.0.1:8501/_stcore/health; then
+              echo "Streamlit is healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker logs verifynews
+          exit 1
+
+      - name: Stop smoke-test container
+        if: always()
+        run: docker rm -f verifynews || true
+
+  publish-image:
+    needs: build-test
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build Docker image for publishing
+        run: docker build -t verifynews:publish .
+
+      - name: Publish image to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker tag verifynews:publish "$IMAGE:latest"
+          docker tag verifynews:publish "$IMAGE:${GITHUB_SHA}"
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${GITHUB_SHA}"
