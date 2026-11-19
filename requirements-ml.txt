@@ -1,0 +1,5 @@
+# Optional local XLM-R fine-tuning stack; the Streamlit baseline does not need this file.
+torch>=2.6
+transformers>=4.50,<5
+datasets>=3.4
+accelerate>=1.2
